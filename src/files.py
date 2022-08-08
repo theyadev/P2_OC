@@ -1,3 +1,4 @@
+import csv 
 import os
 import shutil
 
@@ -38,9 +39,8 @@ def save_to_csv(product: Product, csv_name="products") -> None:
     (product_page_url, title, product_description, universal_product_code, price_exclude_tax,
      price_include_tax, number_available, category, image_url, star_rating) = product
 
-    with open(os.path.join(OUT_FOLDER, csv_name + ".csv"), "a") as file:
-        file.write(f"{product_page_url},{title},{product_description},{universal_product_code},{price_exclude_tax},{price_include_tax},{number_available},{category},{image_url},{star_rating}\n")
-
+    writer = csv.writer(open(os.path.join(OUT_FOLDER, csv_name + ".csv"), "a"))
+    writer.writerow([product_page_url, title, product_description, universal_product_code, price_exclude_tax, price_include_tax, number_available, category, image_url, star_rating])
 
 def save_image(data: str, folder: str, name: str) -> None:
     """Save the image to the output folder."""
