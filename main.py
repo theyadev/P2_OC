@@ -29,18 +29,18 @@ def csv_exists(name):
 
 
 def create_csv(name):
-    with open(name, "w") as file:
+    with open(name + ".csv", "w") as file:
         file.write("product_page_url,title,product_description,universal_product_code,price_exclude_tax,price_include_tax,number_available,category,image_url,star_rating\n")
 
 
-def save_to_csv(product, csv_name="products.csv"):
-    if not csv_exists(csv_name):
+def save_to_csv(product, csv_name="products"):
+    if not csv_exists(csv_name + ".csv"):
         create_csv(csv_name)
 
     (product_page_url, title, product_description, universal_product_code, price_exclude_tax,
      price_include_tax, number_available, category, image_url, star_rating) = product
 
-    with open(csv_name, "a") as file:
+    with open(csv_name + ".csv", "a") as file:
         file.write(f"{product_page_url},{title},{product_description},{universal_product_code},{price_exclude_tax},{price_include_tax},{number_available},{category},{image_url},{star_rating}\n")
 
 
@@ -50,7 +50,10 @@ def scrap_product(url):
 
     product_page_url = url
 
+
     title = soup.find("div", class_="product_main").find("h1").text
+
+    print(title, product_page_url)
     product_description = soup.select_one("div#product_description ~ p").text
     universal_product_code = soup.find("th", text="UPC").find_next("td").text
     price_exclude_tax = soup.find(
@@ -80,9 +83,12 @@ def scrap_page(url, csv_name="products.csv"):
     data = requests.get(url)
     soup = BeautifulSoup(data.text, "html.parser")
 
-    current = soup.find("li", class_="current").text
+    try:
+        current = soup.find("li", class_="current").text
 
-    print(current)
+        print(current)
+    except AttributeError:
+        pass
 
     products = soup.find_all("article", class_="product_pod")
 
@@ -90,17 +96,33 @@ def scrap_page(url, csv_name="products.csv"):
         print(f"{i+1}/{len(products)}")
         product_url = product.find("a")["href"]
         product = scrap_product(urljoin(url, product_url))
-        save_to_csv(product)
+        save_to_csv(product, csv_name.strip())
 
     next_page = soup.find("li", class_="next")
     if next_page:
         next_page_url = next_page.find("a")["href"]
         scrap_page(urljoin(url, next_page_url))
 
+def scrap_categories():
+    data = requests.get(BASE_URL)
+    soup = BeautifulSoup(data.text, "html.parser")
+
+    categories = soup.find("ul", class_="nav").find("ul").find_all("li")
+
+    
+
+    for category in categories:
+        category_name = category.find("a").text
+        category_url = category.find("a")["href"]
+
+        print(urljoin(BASE_URL, category_url))
+
+        scrap_page(urljoin(BASE_URL, category_url), category_name)
 
 def main():
-    scrap_page(
-        "http://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html")
+    scrap_categories()
+    # scrap_page(
+    #     "http://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html")
 
 
 if __name__ == "__main__":
