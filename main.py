@@ -1,8 +1,10 @@
+import os
 import requests
 import re
 
-from urllib.parse import urljoin
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
 
 BASE_URL = "http://books.toscrape.com/"
 
@@ -22,16 +24,23 @@ def get_star_rating(value: str):
         return 0
 
 
-def create_csv(name="products.csv"):
+def csv_exists(name):
+    return os.path.exists(name)
+
+
+def create_csv(name):
     with open(name, "w") as file:
         file.write("product_page_url,title,product_description,universal_product_code,price_exclude_tax,price_include_tax,number_available,category,image_url,star_rating\n")
 
 
-def save_to_csv(product):
+def save_to_csv(product, csv_name="products.csv"):
+    if not csv_exists(csv_name):
+        create_csv(csv_name)
+
     (product_page_url, title, product_description, universal_product_code, price_exclude_tax,
      price_include_tax, number_available, category, image_url, star_rating) = product
 
-    with open("products.csv", "a") as file:
+    with open(csv_name, "a") as file:
         file.write(f"{product_page_url},{title},{product_description},{universal_product_code},{price_exclude_tax},{price_include_tax},{number_available},{category},{image_url},{star_rating}\n")
 
 
@@ -90,7 +99,6 @@ def scrap_page(url, csv_name="products.csv"):
 
 
 def main():
-    create_csv()
     scrap_page(
         "http://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html")
 
