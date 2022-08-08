@@ -1,60 +1,38 @@
-import os
-import requests
 import re
+import requests
 
 from bs4 import BeautifulSoup
+from typing import Tuple
 from urllib.parse import urljoin
 
+from files import save_image, save_to_csv
+from progress.bar import IncrementalBar
+from typings import Product
+from utils import get_star_rating
 
 BASE_URL = "http://books.toscrape.com/"
 
 
-def get_star_rating(value: str):
-    if value == "One":
-        return 1
-    elif value == "Two":
-        return 2
-    elif value == "Three":
-        return 3
-    elif value == "Four":
-        return 4
-    elif value == "Five":
-        return 5
-    else:
-        return 0
+def join_url(url: str) -> str:
+    """Join the url with the base url."""
+    return urljoin(BASE_URL, url)
 
 
-def csv_exists(name):
-    return os.path.exists(name)
-
-
-def create_csv(name):
-    with open(name + ".csv", "w") as file:
-        file.write("product_page_url,title,product_description,universal_product_code,price_exclude_tax,price_include_tax,number_available,category,image_url,star_rating\n")
-
-
-def save_to_csv(product, csv_name="products"):
-    if not csv_exists(csv_name + ".csv"):
-        create_csv(csv_name)
-
-    (product_page_url, title, product_description, universal_product_code, price_exclude_tax,
-     price_include_tax, number_available, category, image_url, star_rating) = product
-
-    with open(csv_name + ".csv", "a") as file:
-        file.write(f"{product_page_url},{title},{product_description},{universal_product_code},{price_exclude_tax},{price_include_tax},{number_available},{category},{image_url},{star_rating}\n")
-
-
-def scrap_product(url):
+def scrap_product(url: str) -> Product:
+    """Scrap a product page."""
     data = requests.get(url)
     soup = BeautifulSoup(data.text, "html.parser")
 
     product_page_url = url
 
-
     title = soup.find("div", class_="product_main").find("h1").text
 
-    print(title, product_page_url)
-    product_description = soup.select_one("div#product_description ~ p").text
+    try:
+        product_description = soup.select_one(
+            "div#product_description ~ p").text
+    except:
+        product_description = None
+
     universal_product_code = soup.find("th", text="UPC").find_next("td").text
     price_exclude_tax = soup.find(
         "th", text="Price (excl. tax)").find_next("td").text
@@ -79,51 +57,42 @@ def scrap_product(url):
     return product
 
 
-def scrap_page(url, csv_name="products.csv"):
+def scrap_page(url: str, csv_name="products.csv") -> None:
+    """Scrap a page containing multiple products."""
     data = requests.get(url)
     soup = BeautifulSoup(data.text, "html.parser")
 
     try:
         current = soup.find("li", class_="current").text
-
-        print(current)
     except AttributeError:
-        pass
+        current = "Page 1 of 1"
 
     products = soup.find_all("article", class_="product_pod")
 
+    bar = IncrementalBar(current.strip() + " - " + csv_name, max=len(products))
+
     for i, product in enumerate(products):
-        print(f"{i+1}/{len(products)}")
         product_url = product.find("a")["href"]
         product = scrap_product(urljoin(url, product_url))
         save_to_csv(product, csv_name.strip())
 
+        image_data = requests.get(product[8]).content
+        save_image(image_data, csv_name, product[1] + ".jpg")
+
+        bar.next()
+    bar.finish()
+
     next_page = soup.find("li", class_="next")
     if next_page:
         next_page_url = next_page.find("a")["href"]
-        scrap_page(urljoin(url, next_page_url))
+        scrap_page(urljoin(url, next_page_url), csv_name)
 
-def scrap_categories():
+
+def scrap_categories() -> Tuple[str, str]:
+    """Scrap the categories."""
     data = requests.get(BASE_URL)
     soup = BeautifulSoup(data.text, "html.parser")
 
     categories = soup.find("ul", class_="nav").find("ul").find_all("li")
 
-    
-
-    for category in categories:
-        category_name = category.find("a").text
-        category_url = category.find("a")["href"]
-
-        print(urljoin(BASE_URL, category_url))
-
-        scrap_page(urljoin(BASE_URL, category_url), category_name)
-
-def main():
-    scrap_categories()
-    # scrap_page(
-    #     "http://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html")
-
-
-if __name__ == "__main__":
-    main()
+    return [(category.find("a").text.strip(), category.find("a")["href"]) for category in categories]
