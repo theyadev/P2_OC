@@ -96,3 +96,6 @@ def scrap_categories() -> Tuple[str, str]:
     categories = soup.find("ul", class_="nav").find("ul").find_all("li")
 
     return [(category.find("a").text.strip(), category.find("a")["href"]) for category in categories]
+
+if __name__ == "__main__":
+    scrap_page("https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html", "Test")
