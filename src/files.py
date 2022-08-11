@@ -36,12 +36,8 @@ def save_to_csv(product: Product, csv_name="products") -> None:
     if not csv_exists(csv_name + ".csv"):
         create_csv(csv_name)
 
-    (product_page_url, title, product_description, universal_product_code, price_exclude_tax,
-     price_include_tax, number_available, category, image_url, star_rating) = product
-
     writer = csv.writer(open(os.path.join(OUT_FOLDER, csv_name + ".csv"), "a"))
-    writer.writerow([product_page_url, title, product_description, universal_product_code,
-                    price_exclude_tax, price_include_tax, number_available, category, image_url, star_rating])
+    writer.writerow(product)
 
 
 def save_image(data: str, folder: str, name: str) -> None:
