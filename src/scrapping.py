@@ -97,5 +97,7 @@ def scrap_categories() -> Tuple[str, str]:
 
     return [(category.find("a").text.strip(), category.find("a")["href"]) for category in categories]
 
+
 if __name__ == "__main__":
-    scrap_page("https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html", "Test")
+    scrap_page(
+        "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html", "Test")
